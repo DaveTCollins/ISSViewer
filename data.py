@@ -1,7 +1,11 @@
 import requests
 import sys
+import thread
+import time
 
 from PySide import QtGui, QtCore
+
+data = {}
 
 class Window(QtGui.QMainWindow):
 
@@ -19,20 +23,29 @@ class RequestLabel(QtGui.QLabel):
         self.function = function
         QtGui.QLabel.__init__(self, '0')
         timer = QtCore.QTimer(self)
-        timer.setInterval(5000)
+        timer.setInterval(1000)
         timer.timeout.connect(self.myupdate)
         timer.start()
 
     def myupdate(self):
         val = self.function()
-        #val = int(self.text()) + 1
         self.setText(str(val))
 
 def get_latitude():
-    r = requests.get('http://api.open-notify.org/iss-now.json')
-    data = r.json()
     return data['iss_position']['latitude']
 
+def get_longitude():
+    return data['iss_position']['longitude']
+
+def fetch_data():
+    while True:
+        get_data()
+        time.sleep(1)
+
+def get_data():
+    global data
+    r = requests.get('http://api.open-notify.org/iss-now.json')
+    data = r.json()
 
 
 app = QtGui.QApplication([])
@@ -42,12 +55,13 @@ main_frame = QtGui.QFrame(win)
 win.setCentralWidget(main_frame)
 main_frame_layout = QtGui.QVBoxLayout(main_frame)
 
-label = RequestLabel(get_latitude)
-label2 = QtGui.QLabel('val2')
-main_frame_layout.addWidget(label)
-main_frame_layout.addWidget(label2)
+lat_label = RequestLabel(get_latitude)
+lon_label = RequestLabel(get_longitude)
+main_frame_layout.addWidget(lat_label)
+main_frame_layout.addWidget(lon_label)
 
 
+thread.start_new_thread(fetch_data, ())
 win.show()
 sys.exit(app.exec_())
 
